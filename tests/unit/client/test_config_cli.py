@@ -451,6 +451,42 @@ class TestConfigContainers:
         assert result.exit_code == 0
         assert "Deployment" in result.output or "deploy" in result.output.lower()
 
+    def test_containers_status_running(self, cli_runner):
+        """containers status mock Docker running containers"""
+        mock_result = MagicMock()
+        mock_result.stdout = (
+            "ginkgo-worker-1\tUp 2 hours (healthy)\tginkgo/worker:latest\n"
+            "ginkgo-worker-2\tUp 1 hour\tginkgo/worker:latest\n"
+        )
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = cli_runner.invoke(config_cli.app, ["containers", "status"])
+        assert result.exit_code == 0
+        assert "ginkgo-worker-1" in result.output
+        assert "2 containers total, 2 running" in result.output
+
+    def test_containers_status_exited(self, cli_runner):
+        """containers status mock Docker with stopped/exited containers (docker ps -a)"""
+        mock_result = MagicMock()
+        mock_result.stdout = (
+            "ginkgo-worker-1\tUp 2 hours\tginkgo/worker:latest\n"
+            "ginkgo-worker-2\tExited (1) 3 days ago\tginkgo/worker:latest\n"
+        )
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = cli_runner.invoke(config_cli.app, ["containers", "status"])
+        assert result.exit_code == 0
+        assert "2 containers total, 1 running" in result.output
+
+    def test_containers_status_docker_missing(self, cli_runner):
+        """containers status when Docker is not installed"""
+        with patch("subprocess.run", side_effect=FileNotFoundError):
+            result = cli_runner.invoke(config_cli.app, ["containers", "status"])
+        assert result.exit_code == 0
+        assert "Unable to query" in result.output
+
     def test_containers_unknown_action(self, cli_runner):
         """containers 未知 action 显示错误"""
         result = cli_runner.invoke(config_cli.app, ["containers", "invalid"])

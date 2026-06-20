@@ -325,7 +325,7 @@ def containers(
             import subprocess
             try:
                 result = subprocess.run(
-                    ["docker", "ps", "--format", "{{.Names}}\t{{.Status}}\t{{.Image}}"],
+                    ["docker", "ps", "-a", "--format", "{{.Names}}\t{{.Status}}\t{{.Image}}"],
                     capture_output=True, text=True, timeout=10
                 )
                 containers = [l.split("\t") for l in result.stdout.strip().splitlines() if l.strip()]
@@ -337,7 +337,7 @@ def containers(
                         running_count += 1
                 console.print(table)
                 console.print(f"\n:bar_chart: Summary: {len(containers)} containers total, {running_count} running")
-            except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            except (subprocess.TimeoutExpired, FileNotFoundError):
                 console.print("[yellow]:warning: Unable to query Docker container status. Is Docker running?[/yellow]")
                 return
 
